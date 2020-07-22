@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: os-dbaas-monitor-grafana
+data:
+{{ (.Files.Glob "dashboards/*").AsConfig | indent 2 }}
