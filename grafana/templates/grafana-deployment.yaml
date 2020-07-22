@@ -1,0 +1,100 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: os-dbaas-monitor-grafana
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: os-dbaas-monitor-grafana
+spec:
+  revisionHistoryLimit: 10
+  template:
+    metadata:
+      labels:
+        app: os-dbaas-monitor-grafana
+    spec:
+      containers:
+      - name: os-dbaas-monitor-grafana
+        image: "{{ .Values.aggregationImage.repository }}:{{ .Values.aggregationImage.tag }}"
+        imagePullPolicy: {{ .Values.aggregationImage.pullPolicy }}
+        ports:
+        - containerPort: 3000
+          name: grafana
+        volumeMounts:
+        - name: ext-storage
+          mountPath: /var/ext-storage
+          subPath: grafana
+        - name: sc-datasources-volume
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: sc-dashboards-provider
+          mountPath: /etc/grafana/provisioning/dashboards
+#        - name: mysql-json-volume
+#          mountPath: /temp/dashboards/mysql
+        - name: postgresql-json-volume
+          mountPath: /temp/dashboards/pg
+#        - name: mongodb-json-volume
+#          mountPath: /temp/dashboards/mongodb
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: Viewer
+        - name: GF_USERS_DEFAULT_THEME
+          value: light
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 30
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1024Mi
+          requests:
+            cpu: 300m
+            memory: 1024Mi
+#      securityContext:
+#        fsGroup: 472
+#        runAsUser: 472
+      serviceAccount: cloudos-dbaas-base-admin
+      volumes:
+      - name: ext-storage
+        persistentVolumeClaim:
+          claimName: os-dbaas-monitor-grafana
+      - name: config
+        emptyDir: {}
+      - name: sc-datasources-volume
+        configMap:
+          name: grafana-datasource
+      - name: sc-dashboards-provider
+        configMap:
+          name: grafana-dashboard
+#      - name: mysql-json-volume
+#        configMap:
+#          name: mysql-dashboard
+      - name: postgresql-json-volume
+        configMap:
+          name: postgresql-dashboard
+#      - name: mongodb-json-volume
+#        configMap:
+#          name: mongodb-dashboard
+#      - name: sc-dashboards-provider
+#        hostPath:
+#          path: /var/lib/grafana/dashboards/
