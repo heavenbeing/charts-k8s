@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource
+  namespace: {{ .Values.namespace }}
+  labels:
+    grafana_datasource: "1"
+    app: os-dbaas-monitor-grafana
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+    - name: Prometheus-Datasource
+      type: prometheus
+      url: http://os-dbaas-monitor-prometheus.{{ .Values.namespace }}:9090
+      access: proxy
+
