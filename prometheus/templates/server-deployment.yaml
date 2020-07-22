@@ -1,0 +1,80 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: os-dbaas-monitor-prometheus
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: os-dbaas-monitor-prometheus
+spec:
+  template:
+    metadata:
+      labels:
+        app: os-dbaas-monitor-prometheus
+    spec:
+      serviceAccountName: os-dbaas-monitor-prometheus
+      containers:
+      - name: os-dbaas-monitor-prometheus
+        image: "{{ .Values.aggregationImage.repository }}:{{ .Values.aggregationImage.tag }}"
+        imagePullPolicy: {{ .Values.aggregationImage.pullPolicy }}
+        command:
+        - "/bin/prometheus"
+        args:
+        - "--config.file=/opt/prometheus/config/prometheus.yml"
+        - "--storage.tsdb.path=/var/ext-storage/data"
+        - "--storage.tsdb.retention=30d"
+        - "--web.enable-admin-api"  # 控制对admin HTTP API的访问，其中包括删除时间序列等功能
+        - "--web.enable-lifecycle"  # 支持热更新，直接执行localhost:9090/-/reload立即生效
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+          name: http
+        volumeMounts:
+        - name: config-out
+          mountPath: "/opt/prometheus/config"
+        - name: ext-storage
+          mountPath: /var/ext-storage
+          subPath: prometheus
+#        - name: config-volume
+#          mountPath: "/etc/prometheus"
+#        - mountPath: "/prometheus"
+#          subPath: prometheus
+#          name: data
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 500m
+            memory: 2Gi
+      - name: prometheus-server-config
+        image: "{{ .Values.configImage.repository }}:{{ .Values.configImage.tag }}"
+        imagePullPolicy: {{ .Values.configImage.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: http
+        volumeMounts:
+        - mountPath: "/opt/prometheus/config"
+          name: config-out
+        resources:
+          limits:
+            cpu: 2
+            memory: 1024Mi
+          requests:
+            cpu: 2
+            memory: 1024Mi
+#      securityContext:
+#        runAsUser: 0
+      serviceAccount: cloudos-dbaas-base-admin
+      volumes:
+      - name: ext-storage
+        persistentVolumeClaim:
+          claimName: os-dbaas-monitor-grafana
+      - name: config-out
+        emptyDir: {}
+#      - configMap:
+#          name: prometheus-config
+#        name: config-volume
+#      - name: data
+#        persistentVolumeClaim:
+#          claimName: prometheus
