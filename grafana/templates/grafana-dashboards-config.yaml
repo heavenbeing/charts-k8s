@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: os-dbaas-monitor-grafana
+data:
+  dashboard.yaml: |-
+    apiVersion: 1
+    providers:
+    - name: 'defalut'
+      orgId: 1
+      folderUid: ''
+      type: file
+      options:
+        path: /temp/dashboards
