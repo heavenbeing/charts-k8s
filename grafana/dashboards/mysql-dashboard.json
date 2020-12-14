@@ -350,7 +350,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "(node_memory_MemTotal_bytes{instance=\"$host\"} - (node_memory_MemFree_bytes{instance=\"$host\"} + node_memory_Buffers_bytes{instance=\"$host\"} + node_memory_Cached_bytes{instance=\"$host\"})) / node_memory_MemTotal_bytes{instance=\"$host\"} * 100",
+          "expr": "(node_memory_MemTotal_bytes{instance="$host"} - node_memory_MemAvailable_bytes{instance="$host"}) / node_memory_MemTotal_bytes{instance="$host"} * 100",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
